@@ -1,0 +1,35 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/*.db
+data/*.sqlite
+data/*.xlsx
+data/chroma/
+target/
+.DS_Store
+# Python virtual environments
+.venv311/
+venv/
+env/
+
+# Python caches and tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local temporary files
+tmp/
+
+# Local databases
+Everything.db
+*.sqlite3
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
