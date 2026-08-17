@@ -1,6 +1,6 @@
-import tempfile
-import unittest
 from pathlib import Path
+
+import pytest
 
 from app.services.skills import MindBridgeSkillRegistry, SkillLoadError
 
@@ -11,43 +11,48 @@ def write_skill(root: Path, name: str, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-class SkillRegistryTests(unittest.TestCase):
-    def test_skill_registry_loads_valid_skill(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            write_skill(
-                root,
-                "demo_skill",
-                """---\nname: demo_skill\ndescription: Use for a clear and sufficiently described demo scenario.\n---\n\n# Demo\n\n## Workflow\n\n- Do one thing.\n""",
-            )
+def test_skill_registry_loads_valid_skill(tmp_path: Path):
+    write_skill(
+        tmp_path,
+        "demo_skill",
+        (
+            "---\n"
+            "name: demo_skill\n"
+            "description: Use for a clear and sufficiently described demo scenario.\n"
+            "---\n\n"
+            "# Demo\n\n"
+            "## Workflow\n\n"
+            "- Do one thing.\n"
+        ),
+    )
 
-            skill = MindBridgeSkillRegistry(root).get_required("demo_skill")
+    skill = MindBridgeSkillRegistry(tmp_path).get_required("demo_skill")
 
-            self.assertEqual(skill.name, "demo_skill")
-            self.assertEqual(skill.validation_issues(), [])
-
-    def test_skill_status_reports_warnings(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            write_skill(
-                root,
-                "demo_skill",
-                """---\nname: demo_skill\ndescription: short\n---\n\n# Demo\n""",
-            )
-
-            status = MindBridgeSkillRegistry(root).status_items()[0]
-
-            self.assertEqual(status["status"], "WARN")
-            self.assertTrue(status["issues"])
-
-    def test_skill_requires_frontmatter(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            write_skill(root, "bad", "# Missing metadata")
-
-            with self.assertRaises(SkillLoadError):
-                MindBridgeSkillRegistry(root).get_required("bad")
+    assert skill.name == "demo_skill"
+    assert skill.validation_issues() == []
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_skill_status_reports_warnings(tmp_path: Path):
+    write_skill(
+        tmp_path,
+        "demo_skill",
+        (
+            "---\n"
+            "name: demo_skill\n"
+            "description: short\n"
+            "---\n\n"
+            "# Demo\n"
+        ),
+    )
+
+    status = MindBridgeSkillRegistry(tmp_path).status_items()[0]
+
+    assert status["status"] == "WARN"
+    assert status["issues"]
+
+
+def test_skill_requires_frontmatter(tmp_path: Path):
+    write_skill(tmp_path, "bad", "# Missing metadata")
+
+    with pytest.raises(SkillLoadError):
+        MindBridgeSkillRegistry(tmp_path).get_required("bad")

@@ -371,13 +371,18 @@ AI_PROVIDER=mock python -m app.rag_eval.runner
 target/rag-eval-report.json
 ```
 
+
+## 2. 替换成pytest说明
+
+将这一部分完整替换为：
+
+````markdown
 ## 单元测试
 
-当前 `tests/` 里的基础回归用例使用 Python 标准库 `unittest`，不依赖 `pytest`：
+当前 `tests/` 中的基础回归用例使用 `pytest`。开发环境先安装测试依赖：
 
 ```bash
-python -m unittest discover -s tests
-```
+python -m pip install -r requirements-dev.txt
 
 ## Agent Runtime Harness
 
