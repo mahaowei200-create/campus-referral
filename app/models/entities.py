@@ -73,6 +73,23 @@ class KnowledgeChunk(Base):
     content: Mapped[str] = mapped_column(Text)
     embedding_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+    
+class CampusReferralRecord(Base):
+    __tablename__ = "campus_referral_records"
+    id: Mapped[int] = mapped_column(Integer,primary_key=True,)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user_accounts.id"),nullable=True,index=True)
+    session_public_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True,index=True)
+    message: Mapped[str] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(64),index=True,)
+    department: Mapped[str] = mapped_column(String(64),index=True,)
+    urgency: Mapped[str] = mapped_column(String(32), index=True)
+    reason: Mapped[str] = mapped_column(Text)
+    suggestions_json: Mapped[str] = mapped_column(Text,default="[]",)
+    knowledge_context: Mapped[str] = mapped_column(Text,default="",)
+    needs_human_follow_up: Mapped[bool] = mapped_column(Boolean,default=False,index=True,)
+    status: Mapped[str] = mapped_column(String(32),default="PENDING",index=True,)
+    created_at: Mapped[datetime] = mapped_column(DateTime,default=now,)
+    updated_at: Mapped[datetime] = mapped_column(DateTime,default=now,onupdate=now,)
 
 
 class PsychologicalReport(Base):
