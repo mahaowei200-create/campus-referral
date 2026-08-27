@@ -75,3 +75,21 @@ def test_referral_decision_rejects_empty_suggestions(): #校园转介结果不�
             suggestions=[],
             needsHumanFollowUp=False,
         )
+
+def test_referral_decision_accepts_knowledge_context():
+    decision = CampusReferralDecision(
+        category="教务咨询",
+        department="教务处",
+        urgency="NORMAL",
+        reason="用户咨询补考和学分问题",
+        suggestions=[
+            "联系教务处了解补考流程",
+        ],
+        needsHumanFollowUp=False,
+        knowledgeContext=(
+            "[资料1｜来源：campus-referral-resources.md]\n"
+            "教务处主要处理补考、选课和学分问题。"
+        ),
+    )
+
+    assert "教务处主要处理补考" in decision.knowledge_context

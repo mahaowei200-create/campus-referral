@@ -33,10 +33,16 @@ class CampusReferralRequest(BaseModel):  #校园Referral请求
             raise ValueError("message cannot be blank")
         return cleaned
 
-class CampusReferralDecision(BaseModel): #校园Referral决策
+class CampusReferralDecision(BaseModel):
     category: str = Field(min_length=1, max_length=64)
     department: CampusDepartment
     urgency: ReferralUrgency
     reason: str = Field(min_length=1, max_length=500)
     suggestions: list[str] = Field(min_length=1, max_length=5)
     needs_human_follow_up: bool = Field(alias="needsHumanFollowUp")
+    knowledge_context: str = Field(
+        default="",
+        alias="knowledgeContext",
+        max_length=4000,
+    )
+    
