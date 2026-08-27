@@ -92,3 +92,61 @@ def test_triage_prioritizes_high_risk_over_other_matches():
     assert decision.department == CampusDepartment.CAMPUS_SECURITY
     assert decision.urgency == ReferralUrgency.URGENT
     assert decision.needs_human_follow_up is True
+class FakeCampusResourceRetriever:
+    def __init__(self):
+        self.received_query = None
+        self.received_top_k = None
+
+    def build_context(
+        self,
+        query: str,
+        top_k: int = 3,
+    ) -> str:
+        self.received_query = query
+        self.received_top_k = top_k
+
+        return (
+            "[资料1｜来源：campus-referral-resources.md]\n"
+            "教务处主要处理补考、选课和学分问题。"
+        )
+
+
+def test_triage_adds_knowledge_context():
+    fake_retriever = FakeCampusResourceRetriever()
+
+    service = CampusReferralService(
+        resource_retriever=fake_retriever,
+    )
+
+    decision = service.triage(
+        "我想咨询补考和学分问题"
+    )
+
+    assert fake_retriever.received_query == "我想咨询补考和学分问题"
+    assert fake_retriever.received_top_k == 3
+    assert "教务处主要处理补考" in decision.knowledge_context
+
+class FailingCampusResourceRetriever:
+    def build_context(
+        self,
+        query: str,
+        top_k: int = 3,
+    ) -> str:
+        raise RuntimeError("模拟知识检索服务不可用")
+
+
+def test_triage_falls_back_when_knowledge_retrieval_fails():
+    failing_retriever = FailingCampusResourceRetriever()
+
+    service = CampusReferralService(
+        resource_retriever=failing_retriever,
+    )
+
+    decision = service.triage(
+        "我的成绩有问题，想申请补考"
+    )
+
+    assert decision.category == "教务咨询"
+    assert decision.department == CampusDepartment.ACADEMIC_AFFAIRS
+    assert decision.urgency == ReferralUrgency.NORMAL
+    assert decision.knowledge_context == ""

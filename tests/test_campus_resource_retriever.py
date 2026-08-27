@@ -15,7 +15,7 @@ class FakeKnowledgeService:
         return self.results[:top_k]
 
 
-def test_retriever_calls_knowledge_service():
+def test_retriever_calls_knowledge_service(): #测试函数
     fake_service = FakeKnowledgeService(
         results=[
             SearchResult(
@@ -40,7 +40,7 @@ def test_retriever_calls_knowledge_service():
     assert results[0].source == "campus-referral-resources.md"
     assert "教务处" in results[0].content
 
-def test_build_context_formats_search_results():
+def test_build_context_formats_search_results(): 
     fake_service = FakeKnowledgeService(
         results=[
             SearchResult(
