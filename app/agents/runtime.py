@@ -13,7 +13,23 @@ from app.services.assessment import PsychologicalAssessmentService, PsychologyAs
 from app.services.knowledge import KnowledgeService, SearchResult
 from app.services.memory import RedisShortTermMemoryStore, compact_history_for_prompt
 from app.services.skills import MindBridgeSkillLibrary
-
+from app.schemas.campus_referral import (
+    CampusReferralRequest,
+    CampusReferralResponse,
+)
+from app.services.campus_referral import (
+    CampusReferralService,
+    has_campus_referral_signal,
+)
+from app.services.campus_referral_application import (
+    CampusReferralApplicationService,
+)
+from app.services.campus_referral_repository import (
+    CampusReferralRepository,
+)
+from app.services.campus_resource import (
+    CampusResourceRetriever,
+)
 
 GENERAL_TASK_WORDS = [
     "java", "python", "javascript", "代码", "编程", "程序", "算法", "数据库", "spring", "maven",
@@ -48,6 +64,7 @@ class AgentContext:
     assessment: PsychologyAssessment | None = None  #心理评估结果
     knowledge_query: str = ""   
     retrieved_knowledge: list[SearchResult] = field(default_factory=list) #RAG检索的结果
+    campus_referral: (CampusReferralResponse | None) = None
     model_history: list[AiMessage] = field(default_factory=list)
     response_messages: list[AiMessage] = field(default_factory=list)  #最终交给大模型生成回答的消息列表
     response_agent: str = ""
@@ -64,10 +81,14 @@ class AgentRunResult:
     response_messages: list[AiMessage]
     steps: list[AgentStep]
     memory_brief: str
+    campus_referral: (CampusReferralResponse | None)
 
     @property
     def requires_report(self) -> bool:
-        return self.intent != IntentType.CHAT
+        return self.intent in {
+            IntentType.CONSULT,
+            IntentType.RISK,
+        }
 
 
 class AgentRuntimeService:
@@ -78,6 +99,10 @@ class AgentRuntimeService:
         self.settings = settings
         self.ai = AiClient(settings)
         self.knowledge = KnowledgeService(db, settings)
+        campus_resource_retriever = (CampusResourceRetriever(knowledge_service=self.knowledge,))
+        campus_triage_service = (CampusReferralService(resource_retriever=(campus_resource_retriever),))
+        campus_repository = (CampusReferralRepository(db=db))
+        self.campus_referral_application = (CampusReferralApplicationService(triage_service=campus_triage_service,repository=campus_repository,))
         self.memory = RedisShortTermMemoryStore(settings)
         self.assessment = PsychologicalAssessmentService(self.ai)
 
@@ -86,6 +111,7 @@ class AgentRuntimeService:
         agents = [
             self.memory_agent,    #加载历史记忆
             self.supervisor_agent,   #分析意图分派任务  
+            self.campus_referral_agent,
             self.knowledge_agent,    #检索知识库
             self.risk_guardian_agent, #风险评估
             self.companion_agent,     #共情回应
@@ -105,6 +131,7 @@ class AgentRuntimeService:
             response_messages=context.response_messages,
             steps=context.steps,
             memory_brief=context.memory_brief,
+            campus_referral=context.campus_referral,
         )
 
     def memory_agent(self, step: int, context: AgentContext) -> bool:
@@ -145,6 +172,72 @@ class AgentRuntimeService:
             context.knowledge_handled = True    
             context.risk_assessed = True
         context.steps.append(AgentStep(step, "SupervisorAgent", "ROUTE_INTENT", f"intent={context.intent.value}"))
+        return True
+    def campus_referral_agent(self,step: int,context: AgentContext,) -> bool:
+        if (not context.intent_routed or context.intent!= IntentType.CAMPUS_REFERRAL or context.response_planned):
+            return False
+
+        request = CampusReferralRequest(sessionId=context.session.public_id,message=context.model_input,)
+
+        referral = (self.campus_referral_application.create_referral(request=request,user_id=context.user.id,))
+
+        context.campus_referral = referral
+        context.knowledge_handled = True
+        context.risk_assessed = True
+
+        if referral.urgency.value == "URGENT":
+            context.risk_level = RiskLevel.HIGH
+        elif referral.urgency.value == "PRIORITY":
+            context.risk_level = RiskLevel.MEDIUM
+        else:
+            context.risk_level = RiskLevel.LOW
+
+        suggestions = "\n".join(f"- {item}"for item in referral.suggestions)
+
+        context.response_agent = ("CampusReferralAgent")
+        context.response_plan = ("依据结构化分诊结果说明推荐部门、"
+        "原因、办理建议和注意事项。"
+        )
+
+        context.response_messages = [
+            AiMessage(
+                role="system",
+                content=(
+                    "你是MindBridge校园咨询分诊助手。"
+                    "请严格依据下面已经确认的结构化"
+                    "分诊结果回复，不得擅自更换部门、"
+                    "紧急程度或编造联系方式。\n\n"
+                    f"转介记录ID：{referral.record_id}\n"
+                    f"问题类别：{referral.category}\n"
+                    f"推荐部门："
+                    f"{referral.department.value}\n"
+                    f"紧急程度："
+                    f"{referral.urgency.value}\n"
+                    f"分诊原因：{referral.reason}\n"
+                    f"处理建议：\n{suggestions}\n\n"
+                    "回复要求：使用简洁、友好的中文；"
+                    "先说明推荐部门和原因，再列出建议。"
+                    "如果紧急程度为URGENT，要明确提醒"
+                    "用户优先确保人身安全并尽快联系"
+                    "校方或当地紧急服务。"
+                ),
+            ),
+            *context.model_history,
+        ]
+
+        context.response_planned = True
+        context.finished = True
+
+        context.steps.append(AgentStep(step,"CampusReferralAgent","CREATE_CAMPUS_REFERRAL",
+                (
+                    f"record_id={referral.record_id}; "
+                    f"department="
+                    f"{referral.department.value}; "
+                    f"urgency={referral.urgency.value}"
+                ),
+            )
+        )
+
         return True
 
     def knowledge_agent(self, step: int, context: AgentContext) -> bool:  #它先调用模型把用户问题改写成适合检索的查询词
@@ -221,6 +314,8 @@ class AgentRuntimeService:
         lowered = text.lower()
         if has_high_risk_signal(lowered):
             return IntentType.RISK
+        if has_campus_referral_signal(lowered):
+            return IntentType.CAMPUS_REFERRAL
         if not has_consult_signal(lowered) and any(word in lowered for word in GENERAL_TASK_WORDS):
             return IntentType.CHAT
         try:

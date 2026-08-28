@@ -36,6 +36,7 @@ class LangGraphAgentRuntimeService(AgentRuntimeService):
             response_messages=result_context.response_messages,
             steps=result_context.steps,
             memory_brief=result_context.memory_brief,
+            campus_referral=(result_context.campus_referral),
         )
 
     def _build_graph(self):
@@ -45,6 +46,7 @@ class LangGraphAgentRuntimeService(AgentRuntimeService):
         graph.add_node("controller", self._controller_node)
         graph.add_node("memory", self._memory_node)
         graph.add_node("supervisor", self._supervisor_node)
+        graph.add_node("campus_referral",self._campus_referral_node)
         graph.add_node("knowledge", self._knowledge_node)
         graph.add_node("risk_guardian", self._risk_guardian_node)
         graph.add_node("companion", self._companion_node)
@@ -58,6 +60,7 @@ class LangGraphAgentRuntimeService(AgentRuntimeService):
                 "memory": "memory",
                 "supervisor": "supervisor",
                 "knowledge": "knowledge",
+                "campus_referral": "campus_referral",
                 "risk_guardian": "risk_guardian",
                 "companion": "companion",
                 "counselor": "counselor",
@@ -67,6 +70,7 @@ class LangGraphAgentRuntimeService(AgentRuntimeService):
         graph.add_edge("memory", "controller")
         graph.add_edge("supervisor", "controller")
         graph.add_edge("knowledge", "controller")
+        graph.add_edge("campus_referral","controller")
         graph.add_edge("risk_guardian", "controller")
         graph.add_edge("companion", "controller")
         graph.add_edge("counselor", "controller")
@@ -82,7 +86,9 @@ class LangGraphAgentRuntimeService(AgentRuntimeService):
     def _supervisor_node(self, state: GraphState) -> GraphState:
         self._run_agent(state, self.supervisor_agent)
         return state
-
+    def _campus_referral_node(self,state: GraphState,) -> GraphState:
+        self._run_agent(state,self.campus_referral_agent,)
+        return state
     def _knowledge_node(self, state: GraphState) -> GraphState:
         self._run_agent(state, self.knowledge_agent)
         return state
@@ -117,6 +123,10 @@ class LangGraphAgentRuntimeService(AgentRuntimeService):
             return "memory"
         if not context.intent_routed:
             return "supervisor"
+        if (context.intent== IntentType.CAMPUS_REFERRAL):
+            if not context.response_planned:
+                return "campus_referral"
+            return "end"
         if context.intent == IntentType.CHAT:
             return "companion" if not context.response_planned else "end"
         if not context.knowledge_handled:

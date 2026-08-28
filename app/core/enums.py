@@ -11,6 +11,7 @@ class IntentType(str, Enum):
     CHAT = "CHAT"
     CONSULT = "CONSULT"
     RISK = "RISK"
+    CAMPUS_REFERRAL = "CAMPUS_REFERRAL"
 
 
 class RiskLevel(str, Enum):

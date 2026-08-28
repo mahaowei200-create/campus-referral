@@ -18,6 +18,7 @@ from app.services.memory import RedisShortTermMemoryStore
 from app.services.privacy import PrivacySanitizer
 from app.services.tool_queue import ToolQueueService
 from app.services.trace import AgentTraceService
+from app.schemas.campus_referral import (CampusReferralResponse,)
 
 
 @dataclass
@@ -44,6 +45,7 @@ class AgentHarnessOutcome:
     report_id: int | None
     tool_plan: AgentToolPlan
     trace_id: int | None
+    campus_referral: (CampusReferralResponse | None)
 
 
 class MindBridgeAgentHarness:
@@ -92,6 +94,7 @@ class MindBridgeAgentHarness:
             report_id=report.id if report is not None else None,
             tool_plan=tool_plan,
             trace_id=trace.id,#追溯ID
+            campus_referral=(agent_run.campus_referral),
         )
 
     def save_assistant_message(self, user: UserAccount, session: ChatSession, content: str) -> None:

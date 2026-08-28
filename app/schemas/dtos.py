@@ -15,6 +15,9 @@ class ChatStreamEvent(BaseModel):
     sessionId: Optional[str] = None
     content: Optional[str] = None
     message: Optional[str] = None
+    referralRecordId: Optional[int] = None
+    referralDepartment: Optional[str] = None
+    referralUrgency: Optional[str] = None
     type: str
 
 

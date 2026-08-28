@@ -23,8 +23,33 @@ class ChatService:
         self.agent_harness = MindBridgeAgentHarness(db, settings)
 
     async def stream_chat(self, user: UserAccount, request: ChatRequest):
-        outcome = self.agent_harness.run(user, request)
-        yield sse("meta", ChatStreamEvent(type="meta", sessionId=outcome.session.public_id).model_dump(by_alias=True))
+        outcome = self.agent_harness.run(
+    user,
+    request,
+)
+        referral = outcome.campus_referral
+        meta_event = ChatStreamEvent(type="meta",sessionId=outcome.session.public_id,referralRecordId=(referral.record_id
+                if referral is not None
+else None
+            ),
+            referralDepartment=(
+                referral.department.value
+                if referral is not None
+                else None
+            ),
+            referralUrgency=(
+                referral.urgency.value
+                if referral is not None
+                else None
+            ),
+        )
+
+        yield sse(
+            "meta",
+            meta_event.model_dump(
+                exclude_none=True,
+            ),
+        )
         assistant = []
         async for token in self.ai.stream(outcome.response_messages):
             assistant.append(token)

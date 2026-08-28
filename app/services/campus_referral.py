@@ -119,6 +119,82 @@ NORMAL_REFERRAL_RULES = (
         ],
     },
 )
+CAMPUS_SERVICE_ACTION_WORDS = (
+    "怎么办",
+    "怎么申请",
+    "怎么处理",
+    "如何办理",
+    "办理流程",
+    "申请流程",
+    "应该找谁",
+    "找哪个部门",
+    "去哪里",
+    "在哪里",
+    "咨询",
+    "联系",
+    "申请",
+    "办理",
+    "预约",
+    "补办",
+    "流程",
+    "地点",
+)
+
+
+CAMPUS_DEPARTMENT_WORDS = (
+    "教务处",
+    "就业指导中心",
+    "学生资助中心",
+    "心理咨询中心",
+    "校医院",
+    "保卫处",
+    "校园保卫处",
+    "辅导员",
+    "学生工作处",
+)
+
+
+def has_campus_referral_signal(
+    message: str,
+) -> bool:
+    normalized_message = (
+        message.strip().lower()
+    )
+
+    if not normalized_message:
+        return False
+
+    if any(
+        word in normalized_message
+        for word in CAMPUS_SAFETY_WORDS
+    ):
+        return True
+
+    topic_words = tuple(
+        keyword
+        for rule in NORMAL_REFERRAL_RULES
+        for keyword in rule["keywords"]
+    )
+
+    has_topic = any(
+        word in normalized_message
+        for word in topic_words
+    )
+
+    has_department = any(
+        word in normalized_message
+        for word in CAMPUS_DEPARTMENT_WORDS
+    )
+
+    has_service_action = any(
+        word in normalized_message
+        for word in CAMPUS_SERVICE_ACTION_WORDS
+    )
+
+    return (
+        (has_topic or has_department)
+        and has_service_action
+    )
 
 
 class CampusReferralService:
