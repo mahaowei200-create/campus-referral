@@ -6,7 +6,11 @@ from app.schemas.campus_referral import (
     CampusReferralDecision,
     CampusReferralResponse,
     ReferralUrgency,
+    CampusReferralStatusUpdateRequest,
+    ReferralStatus,
+    CampusReferralAdminResponse,
 )
+from datetime import datetime
 
 def test_referral_request_accepts_valid_message():  #校园转介请求能够接受一条合法消息
     request = CampusReferralRequest(message="我最近总是失眠")
@@ -122,3 +126,60 @@ def test_referral_response_contains_record_id_and_status():
     assert payload["recordId"] == 42
     assert payload["needsHumanFollowUp"] is True
     assert "knowledgeContext" in payload
+
+def test_status_update_request_accepts_supported_status():
+    request = CampusReferralStatusUpdateRequest(
+        status="PROCESSING"
+    )
+
+    assert request.status == ReferralStatus.PROCESSING
+
+
+def test_status_update_request_rejects_unknown_status():
+    with pytest.raises(ValidationError):
+        CampusReferralStatusUpdateRequest(
+            status="UNKNOWN"
+        )
+
+def test_admin_response_contains_management_fields():
+    now = datetime(
+        2026,
+        8,
+        28,
+        10,
+        30,
+    )
+
+    response = CampusReferralAdminResponse(
+        recordId=42,
+        userId=1001,
+        sessionId="session-001",
+        message="我最近一直焦虑失眠",
+        category="心理支持",
+        department="心理咨询中心",
+        urgency="PRIORITY",
+        reason="用户描述了压力和睡眠问题",
+        suggestions=[
+            "联系学校心理咨询中心预约",
+        ],
+        needsHumanFollowUp=True,
+        knowledgeContext=(
+            "心理咨询中心可以提供心理支持。"
+        ),
+        status="PENDING",
+        createdAt=now,
+        updatedAt=now,
+    )
+
+    payload = response.model_dump(
+        by_alias=True,
+    )
+
+    assert response.record_id == 42
+    assert response.user_id == 1001
+    assert response.status == ReferralStatus.PENDING
+    assert payload["recordId"] == 42
+    assert payload["userId"] == 1001
+    assert payload["sessionId"] == "session-001"
+    assert payload["message"] == "我最近一直焦虑失眠"
+    assert payload["createdAt"] == now

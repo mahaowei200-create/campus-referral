@@ -3,15 +3,40 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.entities import CampusReferralRecord
-from app.schemas.campus_referral import CampusReferralDecision
-
+from app.schemas.campus_referral import (
+    CampusReferralDecision,
+    ReferralStatus,
+)
 ALLOWED_REFERRAL_STATUSES = {
-    "PENDING",
-    "PROCESSING",
-    "RESOLVED",
-    "CLOSED",
+    status.value
+    for status in ReferralStatus
 }
 
+
+ALLOWED_STATUS_TRANSITIONS = {
+    "PENDING": {
+        "PENDING",
+        "PROCESSING",
+        "CLOSED",
+    },
+    "PROCESSING": {
+        "PROCESSING",
+        "RESOLVED",
+        "CLOSED",
+    },
+    "RESOLVED": {
+        "RESOLVED",
+    },
+    "CLOSED": {
+        "CLOSED",
+    },
+}
+
+
+class InvalidReferralStatusTransition(
+    ValueError
+):
+    pass
 
 class CampusReferralRepository:
     def __init__(self, db: Session):
@@ -66,17 +91,33 @@ class CampusReferralRepository:
             self.db.scalars(statement).all()
         )
     def update_status(self,record_id: int,status: str,) -> CampusReferralRecord | None:
-        normalized_status = status.strip().upper()
-
-        if normalized_status not in ALLOWED_REFERRAL_STATUSES:
+        normalized_status = (
+    status.strip().upper()
+)
+        if (normalized_status not in ALLOWED_REFERRAL_STATUSES):
             raise ValueError(
-                f"Unsupported referral status: {status}"
-            )
+    "Unsupported referral status: "
+    f"{status}"
+)
 
         record = self.get_by_id(record_id)
 
         if record is None:
             return None
+
+        allowed_targets = (
+            ALLOWED_STATUS_TRANSITIONS.get(
+                record.status,
+                set(),
+            )
+        )
+
+        if normalized_status not in allowed_targets:
+            raise InvalidReferralStatusTransition(
+                "Cannot change referral status "
+                f"from {record.status} "
+                f"to {normalized_status}"
+            )
 
         record.status = normalized_status
 

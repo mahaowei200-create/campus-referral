@@ -7,6 +7,7 @@ from app.core.database import Base
 from app.schemas.campus_referral import CampusReferralDecision
 from app.services.campus_referral_repository import (
     CampusReferralRepository,
+    InvalidReferralStatusTransition,
 )
 
 
@@ -264,3 +265,60 @@ def test_repository_rejects_unsupported_status():
 
         assert reloaded_record is not None
         assert reloaded_record.status == "PENDING"
+
+def test_repository_rejects_backward_status_transition():
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:"
+    )
+
+    Base.metadata.create_all(
+        bind=engine
+    )
+
+    with Session(engine) as db:
+        repository = CampusReferralRepository(db)
+
+        record = repository.create(
+            message="我最近焦虑失眠",
+            decision=make_referral_decision(
+                category="心理支持",
+                department="心理咨询中心",
+                urgency="PRIORITY",
+                needs_human_follow_up=True,
+            ),
+            user_id=1001,
+            session_public_id=(
+                "session-status-transition"
+            ),
+        )
+
+        repository.update_status(
+            record_id=record.id,
+            status="PROCESSING",
+        )
+
+        repository.update_status(
+            record_id=record.id,
+            status="RESOLVED",
+        )
+
+        with pytest.raises(
+            InvalidReferralStatusTransition,
+            match=(
+                "Cannot change referral status "
+                "from RESOLVED to PENDING"
+            ),
+        ):
+            repository.update_status(
+                record_id=record.id,
+                status="PENDING",
+            )
+
+        reloaded_record = (
+            repository.get_by_id(record.id)
+        )
+
+        assert reloaded_record is not None
+        assert reloaded_record.status == (
+            "RESOLVED"
+        )

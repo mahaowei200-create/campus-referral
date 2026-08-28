@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Annotated
 from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
+
 
 
 class CampusDepartment(str, Enum):     #校园部门枚举
@@ -20,8 +21,20 @@ class ReferralUrgency(str, Enum):   #紧急情况枚举
     PRIORITY = "PRIORITY"
     URGENT = "URGENT"
 
+class ReferralStatus(str, Enum):
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    RESOLVED = "RESOLVED"
+    CLOSED = "CLOSED"
+
+class CampusReferralStatusUpdateRequest(BaseModel):
+    status: ReferralStatus
+
 class CampusReferralRequest(BaseModel):  #校园Referral请求
-    session_id: Annotated[str | None,Field(alias="sessionId"),] = None
+    session_id: str | None = Field(
+    default=None,
+    alias="sessionId",
+)
     message: str = Field(min_length=1, max_length=500)
 
     @field_validator("message")
@@ -47,4 +60,24 @@ class CampusReferralDecision(BaseModel):
     
 class CampusReferralResponse(CampusReferralDecision):
     record_id: int = Field(gt=0,alias="recordId",)
-    status: str = Field(min_length=1,max_length=32)
+    status: ReferralStatus
+
+class CampusReferralAdminResponse(CampusReferralResponse):
+    user_id: int | None = Field(
+        default=None,
+        alias="userId",
+    )
+    session_id: str | None = Field(
+        default=None,
+        alias="sessionId",
+    )
+    message: str = Field(
+        min_length=1,
+        max_length=500,
+    )
+    created_at: datetime = Field(
+        alias="createdAt",
+    )
+    updated_at: datetime = Field(
+        alias="updatedAt",
+    )
