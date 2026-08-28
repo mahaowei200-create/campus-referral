@@ -4,6 +4,9 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles   # FastAPI 内置静态文件托管工具，用来加载 html/js/css 前端页面
 
 from app.api.routes import router
+from app.api.campus_referral import (
+    router as campus_referral_router,
+)
 from app.core.bootstrap import create_schema, seed_data
 from app.core.config import get_settings
 from app.core.database import SessionLocal
@@ -41,6 +44,7 @@ def create_app() -> FastAPI:
             worker.stop()
 
     app.include_router(router)
+    app.include_router(campus_referral_router)
     #把项目内置的前端页面（html、js、css、图片）托管给 FastAPI，访问网站根路径直接打开网页，后端自带前端，不用单独开前端服务。
     static_dir = Path(__file__).resolve().parent / "static"
     # app.mount () 是把某一段 URL 前缀，绑定到独立文件服务。mount 专门处理静态资源，不走后端业务逻辑，直接返回本地文件。

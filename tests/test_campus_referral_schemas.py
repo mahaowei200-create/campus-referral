@@ -4,6 +4,7 @@ from app.schemas.campus_referral import (
     CampusDepartment,
     CampusReferralRequest,
     CampusReferralDecision,
+    CampusReferralResponse,
     ReferralUrgency,
 )
 
@@ -93,3 +94,31 @@ def test_referral_decision_accepts_knowledge_context():
     )
 
     assert "教务处主要处理补考" in decision.knowledge_context
+
+def test_referral_response_contains_record_id_and_status():
+    response = CampusReferralResponse(
+        recordId=42,
+        category="心理支持",
+        department="心理咨询中心",
+        urgency="PRIORITY",
+        reason="用户描述了压力和睡眠问题",
+        suggestions=[
+            "联系学校心理咨询中心预约",
+        ],
+        needsHumanFollowUp=True,
+        knowledgeContext=(
+            "[资料1｜来源：campus-referral-resources.md]\n"
+            "心理咨询中心可以提供心理支持。"
+        ),
+        status="PENDING",
+    )
+
+    payload = response.model_dump(   #model_dump()方法将pydantic模型对象转换为字典
+        by_alias=True
+    )
+
+    assert response.record_id == 42
+    assert response.status == "PENDING"
+    assert payload["recordId"] == 42
+    assert payload["needsHumanFollowUp"] is True
+    assert "knowledgeContext" in payload

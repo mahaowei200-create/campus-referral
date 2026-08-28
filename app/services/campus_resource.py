@@ -5,7 +5,7 @@ class CampusResourceRetriever:
     def __init__(self, knowledge_service: KnowledgeService):
         self.knowledge_service = knowledge_service
 
-    def retrieve(self, query: str,top_k: int = 3) -> list[SearchResult]:
+    def retrieve(self, query: str,top_k: int = 3) -> list[SearchResult]: #向量检索
         normalized_query = query.strip()
 
         if not normalized_query:
@@ -18,7 +18,7 @@ class CampusResourceRetriever:
             top_k=safe_top_k,
         )
 
-    def build_context(self, query: str, top_k: int = 3,) -> str:
+    def build_context(self, query: str, top_k: int = 3,) -> str: #构建上下文
         results = self.retrieve(
             query=query,
             top_k=top_k,

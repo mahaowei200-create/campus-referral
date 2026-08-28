@@ -1,5 +1,5 @@
 from enum import Enum
-
+from typing import Annotated
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -20,9 +20,8 @@ class ReferralUrgency(str, Enum):   #紧急情况枚举
     PRIORITY = "PRIORITY"
     URGENT = "URGENT"
 
-
 class CampusReferralRequest(BaseModel):  #校园Referral请求
-    session_id: str | None = Field(default=None, alias="sessionId")
+    session_id: Annotated[str | None,Field(alias="sessionId"),] = None
     message: str = Field(min_length=1, max_length=500)
 
     @field_validator("message")
@@ -46,3 +45,6 @@ class CampusReferralDecision(BaseModel):
         max_length=4000,
     )
     
+class CampusReferralResponse(CampusReferralDecision):
+    record_id: int = Field(gt=0,alias="recordId",)
+    status: str = Field(min_length=1,max_length=32)
