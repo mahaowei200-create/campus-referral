@@ -84,7 +84,14 @@ class CampusReferralRepository:
         )
     def list_pending(self) -> list[CampusReferralRecord]:
         statement = (
-            select(CampusReferralRecord).where(CampusReferralRecord.needs_human_follow_up.is_(True),CampusReferralRecord.status == "PENDING",).order_by(CampusReferralRecord.id.desc())
+            select(CampusReferralRecord)
+            .where(
+                CampusReferralRecord.needs_human_follow_up.is_(True),
+                CampusReferralRecord.status.in_(
+                    ("PENDING", "PROCESSING")
+                ),
+            )
+            .order_by(CampusReferralRecord.id.desc())
         )
 
         return list(

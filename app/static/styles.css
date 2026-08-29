@@ -563,10 +563,90 @@ textarea {
 }
 
 .reports,
-.cases {
+.cases,
+.campus-referrals {
   display: grid;
   gap: 12px;
   margin-top: 18px;
+}
+
+.campus-referral-card {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--student);
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.campus-referral-card.urgency-normal {
+  border-left-color: var(--student);
+}
+
+.campus-referral-card.urgency-priority {
+  border-color: #f2d19b;
+  border-left-color: var(--warn);
+  background: #fffaf0;
+}
+
+.campus-referral-card.urgency-urgent {
+  border-color: #f0b4ae;
+  border-left-color: var(--danger);
+  background: #fff5f4;
+}
+
+.campus-referral-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.campus-referral-head strong {
+  line-height: 1.5;
+}
+
+.campus-referral-meta {
+  margin: 10px 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.campus-referral-message {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.campus-referral-reason {
+  margin: 10px 0;
+  line-height: 1.7;
+}
+
+.campus-referral-suggestions {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.campus-referral-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.campus-referral-actions button {
+  min-height: 38px;
+  padding: 8px 14px;
 }
 
 .report {
@@ -787,6 +867,7 @@ textarea {
   .composer-actions,
   .report-head,
   .case-head,
+  .campus-referral-head,
   .conversation-meta {
     align-items: stretch;
     flex-direction: column;

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MindBridge 管理员端</title>
-  <link rel="stylesheet" href="/styles.css?v=role-split-20260617">
+  <link rel="stylesheet" href="/styles.css?v=campus-referral-20260829">
 </head>
 <body class="admin-page">
   <header class="topbar">
@@ -53,6 +53,23 @@
 
     <section class="admin-columns">
       <div class="admin-stack">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <p class="panel-label">CAMPUS REFERRALS</p>
+              <h2>校园咨询转介</h2>
+            </div>
+            <span id="referralState" class="hint">等待读取</span>
+          </div>
+
+          <div id="campusReferrals" class="campus-referrals">
+            <div class="empty small">
+              <strong>正在读取转介记录</strong>
+              <p>学生提交的校园咨询转介会显示在这里。</p>
+            </div>
+          </div>
+        </section>
+
         <section class="panel">
           <div class="section-head">
             <div>
@@ -113,6 +130,6 @@
     </section>
   </main>
 
-  <script src="/admin.js?v=role-split-20260617"></script>
+  <script src="/admin.js?v=campus-referral-20260829"></script>
 </body>
 </html>

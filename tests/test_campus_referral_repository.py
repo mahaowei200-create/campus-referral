@@ -118,7 +118,7 @@ def make_referral_decision(
         ],
         needsHumanFollowUp=needs_human_follow_up,
     )
-def test_repository_lists_pending_human_follow_up_records():
+def test_repository_lists_active_human_follow_up_records():
     engine = create_engine(
         "sqlite+pysqlite:///:memory:"
     )
@@ -152,6 +152,32 @@ def test_repository_lists_pending_human_follow_up_records():
             session_public_id="session-urgent",
         )
 
+        repository.update_status(
+            record_id=psychological_record.id,
+            status="PROCESSING",
+        )
+
+        resolved_record = repository.create(
+            message="我之前提交的心理转介已经处理完成",
+            decision=make_referral_decision(
+                category="心理支持",
+                department="心理咨询中心",
+                urgency="PRIORITY",
+                needs_human_follow_up=True,
+            ),
+            user_id=1004,
+            session_public_id="session-resolved",
+        )
+
+        repository.update_status(
+            record_id=resolved_record.id,
+            status="PROCESSING",
+        )
+        repository.update_status(
+            record_id=resolved_record.id,
+            status="RESOLVED",
+        )
+
         repository.create(
             message="我想咨询补考时间",
             decision=make_referral_decision(
@@ -181,10 +207,13 @@ def test_repository_lists_pending_human_follow_up_records():
             for record in pending_records
         )
 
-        assert all(
-            record.status == "PENDING"
+        assert {
+            record.status
             for record in pending_records
-        )
+        } == {
+            "PENDING",
+            "PROCESSING",
+        }
 def test_repository_updates_referral_status():
     engine = create_engine(
         "sqlite+pysqlite:///:memory:"

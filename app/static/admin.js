@@ -16,6 +16,8 @@ const els = {
   metricCases: document.querySelector("#metricCases"),
   metricExcel: document.querySelector("#metricExcel"),
   metricAlerts: document.querySelector("#metricAlerts"),
+  referralState: document.querySelector("#referralState"),
+  campusReferrals: document.querySelector("#campusReferrals"),
   cases: document.querySelector("#cases"),
   reports: document.querySelector("#reports"),
   conversationState: document.querySelector("#conversationState"),
@@ -141,6 +143,219 @@ async function loadAdminDashboard() {
   els.metricAlerts.textContent = alerts.length;
   renderCases(cases);
   renderReports(reports);
+}
+
+async function loadCampusReferrals() {
+  els.referralState.textContent = "读取中";
+
+  try {
+    const response = await api(
+      "/api/admin/campus-referrals/pending"
+    );
+    const referrals = await response.json();
+
+    els.referralState.textContent =
+      `${referrals.length} 条待跟进`;
+
+    renderCampusReferrals(referrals);
+    return referrals;
+  } catch (error) {
+    els.referralState.textContent = "读取失败";
+    els.campusReferrals.innerHTML = `
+      <div class="empty small">
+        <strong>转介记录读取失败</strong>
+        <p>${error.message}</p>
+      </div>
+    `;
+    return [];
+  }
+}
+
+function renderCampusReferrals(referrals) {
+  els.campusReferrals.innerHTML = "";
+
+  if (!referrals.length) {
+    els.campusReferrals.innerHTML = `
+      <div class="empty small">
+        <strong>暂无待跟进转介</strong>
+        <p>需要人工跟进的校园咨询转介会显示在这里。</p>
+      </div>
+    `;
+    return;
+  }
+
+  const urgencyLabels = {
+    NORMAL: "普通",
+    PRIORITY: "优先处理",
+    URGENT: "紧急处理"
+  };
+
+  const statusLabels = {
+    PENDING: "待处理",
+    PROCESSING: "处理中",
+    RESOLVED: "已解决",
+    CLOSED: "已关闭"
+  };
+
+  for (const item of referrals) {
+    const card = document.createElement("article");
+    card.className =
+      `campus-referral-card urgency-${item.urgency.toLowerCase()}`;
+
+    const head = document.createElement("div");
+    head.className = "campus-referral-head";
+
+    const title = document.createElement("strong");
+    title.textContent =
+      `转介 #${item.recordId} · ${item.category}`;
+
+    const status = document.createElement("span");
+    status.className =
+      item.urgency === "URGENT"
+        ? "pill danger"
+        : "pill warn";
+    status.textContent =
+      statusLabels[item.status] || item.status;
+
+    head.append(title, status);
+
+    const meta = document.createElement("p");
+    meta.className = "campus-referral-meta";
+    meta.textContent =
+      `学生 #${item.userId ?? "未知"} · ` +
+      `${item.department} · ` +
+      `${urgencyLabels[item.urgency] || item.urgency} · ` +
+      `${displayTime(item.createdAt)}`;
+
+    const message = document.createElement("p");
+    message.className = "campus-referral-message";
+    message.textContent = item.message;
+
+    const reason = document.createElement("p");
+    reason.className = "campus-referral-reason";
+    reason.textContent = `分诊原因：${item.reason}`;
+
+    const suggestions = document.createElement("ul");
+    suggestions.className = "campus-referral-suggestions";
+
+    for (const suggestion of item.suggestions || []) {
+      const listItem = document.createElement("li");
+      listItem.textContent = suggestion;
+      suggestions.append(listItem);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "campus-referral-actions";
+
+    if (item.status === "PENDING") {
+      actions.append(
+        createReferralStatusButton(
+          item.recordId,
+          "开始处理",
+          "PROCESSING",
+          "primary"
+        )
+      );
+    }
+
+    if (item.status === "PROCESSING") {
+      actions.append(
+        createReferralStatusButton(
+          item.recordId,
+          "标记已解决",
+          "RESOLVED",
+          "primary"
+        )
+      );
+    }
+
+    actions.append(
+      createReferralStatusButton(
+        item.recordId,
+        "关闭转介",
+        "CLOSED",
+        "ghost"
+      )
+    );
+
+    card.append(
+      head,
+      meta,
+      message,
+      reason,
+      suggestions,
+      actions
+    );
+
+    els.campusReferrals.append(card);
+  }
+}
+
+function createReferralStatusButton(
+  recordId,
+  label,
+  targetStatus,
+  className
+) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.addEventListener("click", () => {
+    updateCampusReferralStatus(
+      recordId,
+      targetStatus,
+      button
+    );
+  });
+  return button;
+}
+
+async function updateCampusReferralStatus(
+  recordId,
+  targetStatus,
+  clickedButton
+) {
+  const actions = clickedButton.closest(
+    ".campus-referral-actions"
+  );
+  const buttons = actions
+    ? Array.from(actions.querySelectorAll("button"))
+    : [clickedButton];
+  const originalLabel = clickedButton.textContent;
+
+  for (const button of buttons) {
+    button.disabled = true;
+  }
+  clickedButton.textContent = "提交中...";
+  els.referralState.textContent = `正在更新 #${recordId}`;
+
+  try {
+    await api(
+      `/api/admin/campus-referrals/${recordId}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          status: targetStatus
+        })
+      }
+    );
+
+    await loadCampusReferrals();
+  } catch (error) {
+    els.referralState.textContent = "状态更新失败";
+    window.alert(`转介状态更新失败：${error.message}`);
+
+    if (clickedButton.isConnected) {
+      clickedButton.textContent = originalLabel;
+      for (const button of buttons) {
+        button.disabled = false;
+      }
+    }
+  }
 }
 
 async function loadKnowledgeStatus() {
@@ -327,6 +542,7 @@ function logout() {
 els.switchAccount.addEventListener("click", logout);
 els.refreshAdmin.addEventListener("click", () => {
   loadAdminDashboard();
+  loadCampusReferrals();
   loadKnowledgeStatus();
 });
 els.knowledgeUploadForm.addEventListener("submit", uploadKnowledgeFile);
@@ -338,5 +554,6 @@ loadProfile().then((profile) => {
   if (!profile) return;
   loadAgentStatus();
   loadAdminDashboard();
+  loadCampusReferrals();
   loadKnowledgeStatus();
 });
