@@ -121,6 +121,41 @@ function addMessage(role, content) {
   els.messages.scrollTop = els.messages.scrollHeight;
   return row.querySelector(".bubble");
 }
+function renderReferralCard(assistantBubble, referral) {
+  const messageRow = assistantBubble.closest(".message");
+  if (!messageRow) return;
+
+  const existingCard = messageRow.querySelector(".referral-card");
+  if (existingCard) existingCard.remove();
+
+  const urgencyLabels = {
+    NORMAL: "普通",
+    PRIORITY: "优先处理",
+    URGENT: "紧急处理"
+  };
+
+  const card = document.createElement("section");
+  const urgency = referral.urgency || "NORMAL";
+
+  card.className = `referral-card urgency-${urgency.toLowerCase()}`;
+
+  const title = document.createElement("strong");
+  title.className = "referral-card-title";
+  title.textContent = "校园咨询分诊建议";
+
+  const department = document.createElement("p");
+  department.textContent = `推荐部门：${referral.department}`;
+
+  const metadata = document.createElement("p");
+  metadata.className = "referral-card-meta";
+  metadata.textContent =
+    `紧急程度：${urgencyLabels[urgency] || urgency} · 转介记录 #${referral.recordId}`;
+
+  card.append(title, department, metadata);
+  messageRow.append(card);
+
+  els.messages.scrollTop = els.messages.scrollHeight;
+}
 
 function parseSse(buffer, onEvent) {
   const parts = buffer.split("\n\n");
@@ -161,7 +196,16 @@ async function sendMessage(event) {
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       buffer = parseSse(buffer, (eventData) => {
-        if (eventData.type === "meta") state.sessionId = eventData.sessionId;
+        if (eventData.type === "meta") {
+          state.sessionId = eventData.sessionId;
+          if (eventData.referralRecordId != null) {
+            renderReferralCard(assistant, {
+              recordId: eventData.referralRecordId,
+              department: eventData.referralDepartment,
+              urgency: eventData.referralUrgency
+            });
+          }
+        }
         if (eventData.type === "token") {
           raw += eventData.content || "";
           assistant.textContent = raw;

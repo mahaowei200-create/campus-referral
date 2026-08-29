@@ -165,6 +165,34 @@ class AiClient:
             if has_consult_signal(last):
                 return "CONSULT"
             return "CHAT"
+        if "校园咨询分诊助手" in system:
+            def read_field(label: str) -> str:
+                prefix = f"{label}："
+                return next(
+                    (
+                        line.removeprefix(prefix).strip()
+                        for line in system.splitlines()
+                        if line.startswith(prefix)
+                    ),
+                    "",
+                )
+
+            department = read_field("推荐部门")
+            urgency = read_field("紧急程度")
+            reason = read_field("分诊原因")
+
+            if urgency == "URGENT":
+                return (
+                    f"根据你的描述，建议立即联系{department}。"
+                    f"{reason}。请优先确保人身安全，"
+                    "并尽快联系校方工作人员或当地紧急服务。"
+                )
+
+            return (
+                f"根据你的描述，建议联系{department}办理。"
+                f"{reason}。你可以提前整理相关材料，"
+                "并向该部门确认具体办理时间和流程。"
+            )
         if "high_risk_safety_plan" in system and has_high_risk_signal(last):
             return "我听到你现在已经痛苦到觉得撑不下去了。现在最重要的是先让你不要一个人扛：请马上联系身边可信任的人，或者直接联系辅导员、学校心理中心、校园保卫/当地紧急服务。接下来 10 分钟，请先把自己移到有人在的地方，并把可能伤害自己的东西放远一点。如果可以，回我一句：你现在身边有没有可以马上联系或走过去找的人？"
         if "当前由 CounselorAgent" in system:

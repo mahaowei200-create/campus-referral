@@ -436,6 +436,57 @@ textarea {
   background: #e7f6f3;
   border-color: #b7ddd5;
 }
+.referral-card {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border: 1px solid #b7ddd5;
+  border-left: 4px solid var(--student);
+  border-radius: 10px;
+  background: #f0fdfa;
+  box-shadow: 0 6px 18px rgba(15, 118, 110, 0.08);
+}
+
+.referral-card-title {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--student-dark);
+  font-size: 15px;
+}
+
+.referral-card p {
+  margin: 4px 0 0;
+  line-height: 1.6;
+}
+
+.referral-card-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.referral-card.urgency-normal {
+  border-left-color: var(--student);
+  background: #f0fdfa;
+}
+
+.referral-card.urgency-priority {
+  border-color: #f2d19b;
+  border-left-color: var(--warn);
+  background: #fffaf0;
+}
+
+.referral-card.urgency-urgent {
+  border-color: #f0b4ae;
+  border-left-color: var(--danger);
+  background: #fff5f4;
+}
+
+.referral-card.urgency-priority .referral-card-title {
+  color: var(--warn);
+}
+
+.referral-card.urgency-urgent .referral-card-title {
+  color: var(--danger);
+}
 
 .composer {
   border-top: 1px solid var(--line);
